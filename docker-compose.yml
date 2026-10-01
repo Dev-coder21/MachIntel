@@ -1,0 +1,101 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: machintel_postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-machintel_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-machintel_password}
+      POSTGRES_DB: ${POSTGRES_DB:-machintel}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-machintel_user} -d ${POSTGRES_DB:-machintel}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: machintel_backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-machintel_user}:${POSTGRES_PASSWORD:-machintel_password}@postgres:5432/${POSTGRES_DB:-machintel}
+      SECRET_KEY: ${SECRET_KEY:-local-dev-secret-key-min-32-chars-long-machintel}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      DEBUG: ${DEBUG:-true}
+      BACKEND_CORS_ORIGINS: '["http://localhost:3000","http://127.0.0.1:3000"]'
+      WORKER_ENABLED: ${WORKER_ENABLED:-true}
+      SCHEDULER_ENABLED: ${SCHEDULER_ENABLED:-true}
+    volumes:
+      - ./backend:/app/backend
+      - ./storage:/app/storage
+      - ./data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health/liveness')\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: ["api"]
+
+  worker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: machintel_worker
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-machintel_user}:${POSTGRES_PASSWORD:-machintel_password}@postgres:5432/${POSTGRES_DB:-machintel}
+      SECRET_KEY: ${SECRET_KEY:-local-dev-secret-key-min-32-chars-long-machintel}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      DEBUG: ${DEBUG:-true}
+      WORKER_ENABLED: ${WORKER_ENABLED:-true}
+      SCHEDULER_ENABLED: ${SCHEDULER_ENABLED:-true}
+      WORKER_POLL_INTERVAL_SECONDS: ${WORKER_POLL_INTERVAL_SECONDS:-3}
+      WORKER_HEARTBEAT_INTERVAL_SECONDS: ${WORKER_HEARTBEAT_INTERVAL_SECONDS:-5}
+      WORKER_STALE_JOB_TIMEOUT_SECONDS: ${WORKER_STALE_JOB_TIMEOUT_SECONDS:-120}
+    volumes:
+      - ./backend:/app/backend
+      - ./storage:/app/storage
+      - ./data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    command: ["worker"]
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000/api/v1}
+    container_name: machintel_frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000/api/v1}
+      NODE_ENV: production
+      PORT: 3000
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
