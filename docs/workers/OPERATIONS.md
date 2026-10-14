@@ -6,7 +6,7 @@ To execute the background worker daemon locally:
 
 ```bash
 # Activate virtual environment
-cd /Users/devtrivedi/Desktop/MachIntel/backend
+cd backend
 source .venv/bin/activate
 
 # Launch worker

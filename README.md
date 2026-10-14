@@ -248,7 +248,7 @@ pip install -r backend/requirements.txt
 cd backend && alembic upgrade head && cd ..
 
 # Bootstrap admin account
-ADMIN_EMAIL="admin@machintel.io" ADMIN_USERNAME="admin" ADMIN_PASSWORD="AdminPassword2026!" python3 backend/scripts/create_first_admin.py
+ADMIN_EMAIL="admin@machintel.io" ADMIN_USERNAME="admin" ADMIN_PASSWORD="<choose-a-strong-password>" python3 backend/scripts/create_first_admin.py
 
 # Seed verified models & compute SHA-256 checksums
 python3 -c "from backend.app.db.session import SessionLocal; from backend.app.services.model_lifecycle_service import ModelLifecycleService; db=SessionLocal(); ModelLifecycleService.seed_verified_models(db); db.close()"

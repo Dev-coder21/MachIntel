@@ -18,11 +18,11 @@ To prevent temporal and entity leakage, MachIntel enforces five hard architectur
 ### Rule 1: Strictly Trailing Causal Windows
 The window $\mathcal{W}_t$ at cycle $t$ is strictly trailing:
 $$\mathcal{W}_t = [ \max(1, t - W + 1), t ]$$
-- **Enforcement:** Verified in [test_rolling_feature_temporal_causality](file:///Users/devtrivedi/Desktop/MachIntel/backend/tests/test_analytics.py#L38-L76). Drastically altering all telemetry values from cycle 11 onwards produces exactly $0.0$ change in all rolling features at cycles $t \le 10$.
+- **Enforcement:** Verified in [test_rolling_feature_temporal_causality](../../backend/tests/test_analytics.py#L38-L76). Drastically altering all telemetry values from cycle 11 onwards produces exactly $0.0$ change in all rolling features at cycles $t \le 10$.
 
 ### Rule 2: Absolute Entity Isolation
 Features are extracted strictly on a per-engine basis:
-- **Enforcement:** Verified in [test_machine_boundary_isolation](file:///Users/devtrivedi/Desktop/MachIntel/backend/tests/test_analytics.py#L80-L101). Rolling windows reset cleanly to cycle 1 for every engine, with $\sigma_1 = 0.0$ and no cross-machine contamination.
+- **Enforcement:** Verified in [test_machine_boundary_isolation](../../backend/tests/test_analytics.py#L80-L101). Rolling windows reset cleanly to cycle 1 for every engine, with $\sigma_1 = 0.0$ and no cross-machine contamination.
 
 ### Rule 3: Entity-Preserving Data Split Allocation
 Telemetry rows are partitioned by complete machine entity:
